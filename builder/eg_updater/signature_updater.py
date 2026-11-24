@@ -70,6 +70,14 @@ SOURCES = {
         "url": "https://urlhaus-api.abuse.ch/v2/files/exports/{key}/recent.csv",
         "keyed": True,
     },
+    "sslbl": {
+        "title": "SSLBL (خوادم تحكم الفيروسات)",
+        "url": "https://sslbl.abuse.ch/blacklist/sslipblacklist.csv",
+    },
+    "openphish": {
+        "title": "OpenPhish (مواقع تصيّد نشطة)",
+        "url": "https://openphish.com/feed.txt",
+    },
     "eagleguard_cloud": {  # handled by cloud_updates.py, listed here for titles in reports
         "title": "سيرفر تحديثات EagleGuard (موقّع)",
         "url": "https://raw.githubusercontent.com/mohamed34151/EagleGuard-Updates/dist/manifest.json",
@@ -83,7 +91,8 @@ SOURCES = {
         "url": "https://github.com/YARAHQ/yara-forge/releases/latest/download/yara-forge-rules-core.zip",
     },
 }
-DEFAULT_SOURCES = ("malwarebazaar_recent", "threatfox", "feodo", "urlhaus", "yara_forge_core", "upx_tool")
+DEFAULT_SOURCES = ("malwarebazaar_recent", "threatfox", "feodo", "urlhaus", "sslbl", "openphish",
+                   "yara_forge_core", "upx_tool")
 # Feeds that only publish a recent window (e.g. last 48 h) are merged so the
 # database keeps growing with every update; "currently online" lists replace.
 ACCUMULATING_SOURCES = {"malwarebazaar_recent", "malwarebazaar_full", "threatfox"}
@@ -378,6 +387,32 @@ def parse_urlhaus_csv(text: str, source: str = "urlhaus") -> dict[str, list[tupl
     return {"urls": urls, "hosts": list(hosts.values())}
 
 
+def parse_sslbl_csv(text: str, source: str = "sslbl") -> list[tuple]:
+    """Columns: Firstseen, DstIP, DstPort (botnet C&C servers seen with malicious TLS)."""
+    out = []
+    for row in _csv_rows(text):
+        if len(row) >= 2 and row[1].strip().count(".") == 3:
+            port = row[2].strip() if len(row) > 2 else ""
+            out.append((row[1].strip(), int(port) if port.isdigit() else None, "Botnet C2 (SSLBL)", source,
+                        _clean(row[0])))
+    return out
+
+
+def parse_url_list(text: str, source: str, family: str = "Phishing") -> dict[str, list[tuple]]:
+    """One URL per line (OpenPhish). Every listed site is active phishing right now."""
+    seen = _utc_now()
+    urls, hosts = [], {}
+    for line in text.splitlines():
+        url = line.strip()
+        if not url or url.startswith("#") or "://" not in url:
+            continue
+        host = _host_of(url)
+        urls.append((url, host, family, source, seen))
+        if host:
+            hosts[host] = (host, family, source, seen)
+    return {"urls": urls, "hosts": list(hosts.values())}
+
+
 # --------------------------------------------------------------- download --
 
 class DownloadError(Exception):
@@ -507,6 +542,10 @@ def update_all(db: ThreatIntelDB | None = None, *, sources: Iterable[str] = DEFA
                     added = db.replace_source(key, ips=parse_feodo_json(text, key))
                 elif key == "urlhaus":
                     added = db.replace_source(key, **parse_urlhaus_csv(text, key))
+                elif key == "sslbl":
+                    added = db.replace_source(key, ips=parse_sslbl_csv(text, key))
+                elif key == "openphish":
+                    added = db.replace_source(key, **parse_url_list(text, key))
                 elif key == "yara_forge_core":
                     added = {"yara_rules": install_yara_rules(text, "yara-forge-core.yar")}
                 else:

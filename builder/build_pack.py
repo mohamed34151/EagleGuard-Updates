@@ -28,7 +28,7 @@ from eg_updater import signature_updater as su  # noqa: E402
 
 PREVIOUS = "https://raw.githubusercontent.com/{repo}/dist/threat_intel.db.gz".format(
     repo=os.environ.get("GITHUB_REPOSITORY", "mohamed34151/EagleGuard-Updates"))
-SOURCES = ("malwarebazaar_recent", "threatfox", "feodo", "urlhaus", "yara_forge_core")
+SOURCES = ("malwarebazaar_recent", "threatfox", "feodo", "urlhaus", "sslbl", "openphish", "yara_forge_core")
 MIN_HASHES = 100  # never publish an (almost) empty database
 
 
