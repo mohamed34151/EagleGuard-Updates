@@ -54,6 +54,9 @@ def main() -> int:
     with closing(sqlite3.connect(db_path)) as conn:
         conn.execute("VACUUM")
     files = {"threat_intel.db.gz": gzip.compress(db_path.read_bytes(), 9)}
+    model = Path(__file__).resolve().parent.parent / "model" / "eagleguard-ml.json.gz"
+    if model.exists():  # AI model from trainer/train_ember.py (already compressed)
+        files["eagleguard-ml.json.gz"] = model.read_bytes()
     rules = WORK / "yara" / "yara-forge-core.yar"
     if rules.exists():
         files["yara-forge-core.yar.gz"] = gzip.compress(rules.read_bytes(), 9)
