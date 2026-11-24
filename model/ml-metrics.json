@@ -1,0 +1,23 @@
+{
+ "auc": 0.9817335690499999,
+ "operating_points": {
+  "0.001": {
+   "threshold": 0.9733288437695387,
+   "detection": 0.55886,
+   "fpr": 0.001
+  },
+  "0.005": {
+   "threshold": 0.9195571345410222,
+   "detection": 0.718,
+   "fpr": 0.005
+  },
+  "0.01": {
+   "threshold": 0.8627565553956261,
+   "detection": 0.79082,
+   "fpr": 0.01
+  }
+ },
+ "trained_utc": "2026-11-24T20:54:14Z",
+ "dataset": "EMBER 2018 v2 (byte histogram + byte entropy + strings)",
+ "train_rows": 600000
+}
